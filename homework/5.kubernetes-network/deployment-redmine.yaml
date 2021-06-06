@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgres
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: pgres
+    spec:
+      initContainers:
+      - image: busybox
+        name: mount-permissions-fix
+        command: ["sh", "-c", "chmod 777 /data"]
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      containers:
+      - image: redmine:4.1.1
+        name: redmine
+        env:
+        - name: REDMINE_DB_POSTGRES
+          value: database
+        - name: REDMINE_DB_USERNAME
+          value: testuser
+        #- name: REDMINE_DB_PASSWORD взять из секрета.
+        #  value: testpassword
+        - name: REDMINE_DB_DATABASE
+          value: testdatabase    
+        #- name: REDMINE_SECRET_KEY_BASE взять из секрета.
+        #  value: supersecretkey      
+        ports:
+        - containerPort: 3000
+          protocol: TCP
