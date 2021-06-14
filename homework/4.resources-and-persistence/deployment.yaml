@@ -33,11 +33,13 @@ spec:
           value: testdatabase
         - name: POSTGRES_USER
           value: testuser
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: password
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
-        envFrom:
-        - sevretRef:
-          name: mysecret
         ports:
         - containerPort: 5432
           protocol: TCP
