@@ -1,0 +1,95 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus
+spec:
+  serviceName: prometheus
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccount: prometheus
+      terminationGracePeriodSeconds: 10
+      initContainers:
+      - image: busybox
+        name: mount-permissions-fix
+        command: ["sh", "-c", "chmod 777 /data"]
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      containers:
+        - name: porometheus-k8s
+          image: prom/prometheus:v2.19.2
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: PROMETHEUS_USE_LONGNAME
+              value: "true"
+            - name: PROMETHEUS_NODENAME
+              value: "peometheus@$(MY_POD_IP)"
+            - name: K8S_SERVICE_NAME
+              value: "prometheus"
+            - name: PROMETHEUS_ERLANG_COOKIE
+              value: "mycookie"
+          ports:
+            - name: amqp
+              protocol: TCP
+              containerPort: 9090
+            - name: admin
+              protocol: TCP
+              containerPort: 15672
+          livenessProbe:
+            exec:
+              command: ["prometheus", "status"]
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 15
+          readinessProbe:
+            exec:
+              command: ["prometheus", "status"]
+            initialDelaySeconds: 20
+            periodSeconds: 60
+            timeoutSeconds: 10
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /var/lib/prometheus
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+            items:
+              - key: prometheus.conf
+                path: prometheus.conf
+              - key: enabled_plugins
+                path: enabled_plugins
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - prometheus
+                topologyKey: kubernetes.io/hostname
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
