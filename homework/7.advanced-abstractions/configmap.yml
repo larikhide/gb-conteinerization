@@ -4,7 +4,7 @@ kind: ConfigMap
 metadata:
   name: prometheus-config
 data:
-  prometheus.yml: |
+  prometheus.yml: |-
     global:
     scrape_interval: 30s
   
