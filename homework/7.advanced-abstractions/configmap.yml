@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: rabbitmq-config
+  name: prometheus-config
 data:
   prometheus.yml: |
     global:
