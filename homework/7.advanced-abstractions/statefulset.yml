@@ -46,18 +46,18 @@ spec:
             - name: admin
               protocol: TCP
               containerPort: 15672
-          livenessProbe:
-            exec:
-              command: ["prometheus", "status"]
-            initialDelaySeconds: 60
-            periodSeconds: 60
-            timeoutSeconds: 15
           readinessProbe:
-            exec:
-              command: ["prometheus", "status"]
-            initialDelaySeconds: 20
-            periodSeconds: 60
-            timeoutSeconds: 10
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
           imagePullPolicy: Always
           volumeMounts:
             - name: config-volume
@@ -69,10 +69,8 @@ spec:
           configMap:
             name: prometheus-config
             items:
-              - key: prometheus.conf
-                path: prometheus.conf
-              - key: enabled_plugins
-                path: enabled_plugins
+              - key: prometheus.yml
+                path: prometheus.yml
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -93,3 +91,4 @@ spec:
         resources:
           requests:
             storage: 5Gi
+        storageClassName: csi-ceph-hdd-dp1
